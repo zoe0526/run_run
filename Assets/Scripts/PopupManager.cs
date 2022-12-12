@@ -3,7 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+
 
 namespace run_run
 {
@@ -15,6 +17,9 @@ namespace run_run
         private GameObject _game_win_popup;
 
         [SerializeField]
+        private TextMeshProUGUI _game_lose_coin_value;
+
+        [SerializeField]
         private GameObject[] _game_win_diamond_arr;
         [SerializeField]
         private TextMeshProUGUI _game_win_coin_value;
@@ -24,16 +29,20 @@ namespace run_run
         private Sprite[] _medal_spr_arr;    //µ¿, Àº ,±Ý
 
         Action start_callback;
-        public void show_game_over_popup(Action callback)
+        public void show_game_over_popup(long win_coin_value,Action callback)
         {
             start_callback = callback;
+            _game_lose_coin_value.text = win_coin_value.ToString();
             _game_over_popup.SetActive(true);
-            _game_over_popup.transform.Find("Scale/BG/Button").GetComponent<Button>().interactable = true;
+
+            _game_over_popup.transform.Find("Scale/BG/RetryButton").GetComponent<Button>().interactable = true;
+            _game_over_popup.transform.Find("Scale/BG/ExitButton").GetComponent<Button>().interactable = true;
         }
 
-        public void on_click_game_over()
+        public void on_click_retry_game()
         {
-            _game_over_popup.transform.Find("Scale/BG/Button").GetComponent<Button>().interactable = false;
+            _game_over_popup.transform.Find("Scale/BG/RetryButton").GetComponent<Button>().interactable = false;
+            _game_over_popup.transform.Find("Scale/BG/ExitButton").GetComponent<Button>().interactable = true;
             _game_over_popup.SetActive(false);
 
 
@@ -44,11 +53,20 @@ namespace run_run
             }
 
         }
-        public void show_game_win_popup(long win_value, int medal_type,Action callback) //medal_type : 0,1,2
+        public void on_click_exit_game()
+        {
+            //Application.Exit();
+
+        }
+        public void show_game_win_popup(long win_value, int medal_type,Action callback) //medal_type : 0,1,2,3
         {
             start_callback = callback;
             _game_win_popup.SetActive(true);
-            _game_medal.sprite = _medal_spr_arr[medal_type];
+            _game_medal.gameObject.transform.localScale = Vector3.one;
+            if (medal_type > 0)
+                _game_medal.sprite = _medal_spr_arr[medal_type];
+            else
+                _game_medal.gameObject.transform.localScale = Vector3.zero;
             _game_win_coin_value.text = win_value.ToString();
 
             for (int i=0; i<_game_win_diamond_arr.Length;i++)

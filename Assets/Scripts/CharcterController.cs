@@ -46,6 +46,8 @@ namespace run_run
             _is_game_end = false;
             init_character();
             init_objs();
+            StatManager.Instance.earn_coin = 0;
+            StatManager.Instance.collected_diamond_cnt = 0;
         }
 
         private void init_character()
@@ -87,14 +89,15 @@ namespace run_run
             }
             if (collision.gameObject.CompareTag("EndPoint"))
             {
-                StartCoroutine(game_win(0, 0));
+                StartCoroutine(game_win());
 
             }
             if (collision.gameObject.CompareTag("Coin"))
             {
-                StatManager.Instance.coin_value++;
-                PlayFabManager.Instance.SaveCoin(StatManager.Instance.coin_value);
-                _game_manager.update_coin(StatManager.Instance.coin_value);
+                StatManager.Instance.earn_coin++;
+                StatManager.Instance.total_coin_value++;
+                PlayFabManager.Instance.SaveCoin(StatManager.Instance.total_coin_value);
+                _game_manager.update_coin(StatManager.Instance.total_coin_value);
 
             }
         }
@@ -215,12 +218,12 @@ namespace run_run
                 init_game();
             });
         }
-        private IEnumerator game_win(long coin_value, int medal_type)
+        private IEnumerator game_win()
         {
             _is_game_end = true;
             transform.GetComponent<Animator>().Play("Idle_Win", -1, 0f);
             yield return new WaitForSeconds(1f);
-            _game_manager.game_win(coin_value,medal_type, () => {
+            _game_manager.game_win(() => {
 
                 //일단은 현재 맵 초기화로. 추후 다음 맵 이동구현
                 init_game();

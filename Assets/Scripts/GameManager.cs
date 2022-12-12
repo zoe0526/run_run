@@ -28,7 +28,7 @@ namespace run_run
         private void set_character_info()
         {
             _User_Account_ID_txt.text = StatManager.Instance.user_ID;
-            _coin_value_txt.text = StatManager.Instance.coin_value.ToString();
+            _coin_value_txt.text = StatManager.Instance.total_coin_value.ToString();
 
         }
 
@@ -65,7 +65,7 @@ namespace run_run
 
         public void game_over(Action callback)
         {
-            _popup_manager.show_game_over_popup(() => {
+            _popup_manager.show_game_over_popup(StatManager.Instance.earn_coin, () => {
                init_game();
                 if(callback!=null)
                 {
@@ -74,9 +74,9 @@ namespace run_run
                 }
             });
         }
-        public void game_win(long coin_value, int medal_type, Action callback)
+        public void game_win(Action callback)
         {
-            _popup_manager.show_game_win_popup(coin_value,medal_type, () => {
+            _popup_manager.show_game_win_popup(StatManager.Instance.earn_coin,StatManager.Instance.collected_diamond_cnt, () => {
                 init_game();
                 if (callback != null)
                 {

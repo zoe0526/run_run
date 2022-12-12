@@ -19,17 +19,23 @@ namespace run_run
             set { _character_life_cnt = value; }
         }
 
-        private int _collected_diamond_cnt;
+        private int _collected_diamond_cnt;//0,1,2,3
         public int collected_diamond_cnt
         {
             get { return _collected_diamond_cnt; }
             set { _collected_diamond_cnt = value; }
         }
-        private long _coin_value;
-        public long coin_value
+        private long _total_coin_value;
+        public long total_coin_value
         {
-            get { return _coin_value; }
-            set { _coin_value = value; }
+            get { return _total_coin_value; }
+            set { _total_coin_value = value; }
+        }
+        private long _earn_coin;
+        public long earn_coin
+        {
+            get { return _earn_coin; }
+            set { _earn_coin = value; }
         }
         private string _user_ID;
         public string user_ID
@@ -48,7 +54,7 @@ namespace run_run
         }
         public void set_character_coin(string coin)
         {
-            _coin_value = long.Parse(coin);
+            _total_coin_value = long.Parse(coin);
         }
 
         public void init_character_stat()
