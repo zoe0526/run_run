@@ -15,8 +15,11 @@ namespace run_run
 
         [SerializeField]
         private float jump_speed = 5f;
-
         [SerializeField]
+        private Collider2D _body_collider;
+        [SerializeField]
+        private Collider2D _foot_collider;
+
         private GameManager _game_manager;
 
 
@@ -24,15 +27,18 @@ namespace run_run
         byte _jump_cnt = 2;
         bool _is_moving = false;
         bool _is_game_end = false;
+        bool _is_squashing = false;
         Vector3 move_velocity = Vector3.zero;
-
+        private void Awake()
+        {
+            _triggered_obj_list = new List<GameObject>();
+            if (_game_manager == null)
+                _game_manager = FindObjectOfType<GameManager>();
+        }
 
         private void Start()
         {
-            _triggered_obj_list = new List<GameObject>();
             init_game();
-            if (_game_manager == null)
-                _game_manager = GetComponent<GameManager>();
             set_gamepad_jump();
         }
 
@@ -44,6 +50,7 @@ namespace run_run
             _jump_cnt = 2;
             _is_moving = false;
             _is_game_end = false;
+            _is_squashing = false;
             init_character();
             init_objs();
             StatManager.Instance.earn_coin = 0;
@@ -55,7 +62,8 @@ namespace run_run
             transform.GetComponent<RectTransform>().anchoredPosition = Vector3.zero;
             transform.GetComponent<Animator>().Play("Idle", -1, 0f);
             transform.localScale= Vector3.one;
-            transform.GetComponent<CircleCollider2D>().enabled = true;
+            _body_collider.enabled = true;
+            _foot_collider.enabled = true;
         }
 
         //캐릭터 재생성시 트리거됬던 오브젝트들 재셋팅
@@ -107,25 +115,14 @@ namespace run_run
             {
                 _jump_cnt = 2;
             }
-            if (collision.gameObject.CompareTag("Spike_Trap") || collision.gameObject.CompareTag("Hiding_Spike_Trap") || collision.gameObject.CompareTag("Monster"))
+            if (collision.gameObject.CompareTag("Spike_Trap") || collision.gameObject.CompareTag("Hiding_Spike_Trap"))
             {
                 if(collision.gameObject.CompareTag("Hiding_Spike_Trap"))
                 {
                     collision.gameObject.transform.Find("spikes").gameObject.SetActive(true);
                     _triggered_obj_list.Add(collision.gameObject);
                 }
-                if(collision.gameObject.CompareTag("Monster"))
-                {
-                    Debug.Log("hit monster");
-                    character_nuck_back();
 
-                }    
-                StatManager.Instance.character_life_cnt--;
-                _game_manager.update_life(StatManager.Instance.character_life_cnt);
-                if(StatManager.Instance.character_life_cnt<=0)
-                {
-                    StartCoroutine(charac_dead());
-                }
 
             }
             if (collision.gameObject.CompareTag("Fall_Ground"))
@@ -187,11 +184,29 @@ namespace run_run
             }
         }
         //캐릭터 공격 당했을 때
-        private void character_nuck_back()
+        public void character_nuck_back()
         {
+            StatManager.Instance.character_life_cnt--;
+            _game_manager.update_life(StatManager.Instance.character_life_cnt);
             transform.GetComponent<Animator>().Play("Blink", -1, 0f);
-            //transform.position += new Vector3(0,jump_speed,0);
-            transform.GetComponent<Rigidbody2D>().AddForce(Vector2.left*10f, ForceMode2D.Impulse);
+
+            if (StatManager.Instance.character_life_cnt <= 0)
+            {
+                StartCoroutine(charac_dead());
+            }
+            else
+                transform.GetComponent<Rigidbody2D>().AddForce(Vector2.left * 10f, ForceMode2D.Impulse);
+            
+        }
+        public void squash_monster()
+        {
+            set_is_squashing(true);
+            transform.GetComponent<Rigidbody2D>().AddForce(Vector2.up * 11f, ForceMode2D.Impulse);
+            //transform.GetComponent<Rigidbody2D>().AddForce(Vector2.up * 10f, ForceMode2D.Impulse);
+        }
+        public void set_is_squashing(bool state)
+        {
+            _is_squashing = state;
         }
         void set_gamepad_jump()
         {
@@ -212,7 +227,8 @@ namespace run_run
             _is_game_end = true;
             transform.localScale = new Vector3(1, -1, 1);
             transform.GetComponent<Animator>().Play("Idle", -1, 0f);
-            transform.GetComponent<CircleCollider2D>().enabled = false;
+            _body_collider.enabled = false;
+            _foot_collider.enabled = false;
             yield return new WaitForSeconds(1f);
             _game_manager.game_over(() => {
                 init_game();
@@ -234,11 +250,15 @@ namespace run_run
 
         private void FixedUpdate()
         {
-            if(!_is_game_end)
+            if (_is_squashing)
+                return;
+            if (!_is_game_end)
                 character_move();
         }
         private void Update()
         {
+            if (_is_squashing)
+                return;
             if (!_is_game_end)
                 character_jump();
 

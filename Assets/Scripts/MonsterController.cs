@@ -3,86 +3,138 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using static UnityEngine.EventSystems.StandaloneInputModule;
 
-
-[Serializable]
-public class MonsterStat : MonoBehaviour
+namespace run_run
 {
-    public string _monster_name = String.Empty;
-    public float _move_speed=10f;
-    public float _pase_time=2f;
-    public float _monster_life=3f;
-
-    public void set_monster_stat(string name,float speed, float pase_time, float life)
+    public class MonsterController : MonoBehaviour
     {
-        this._monster_name = name;
-        this._move_speed = speed;
-        this._pase_time = pase_time;
-        this._monster_life = life;
-
-    }
-}
-public class MonsterController : MonsterStat
-{
-    int move_dir = 1;
-    float pase_time=0f;
-
-
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("Player"))
+        private int move_dir = 1;
+        private float pase_time = 0f;
+        private byte _life_cnt = 0;
+        private Monster _monster_info;
+        private string _monster_key;
+        private IEnumerator move_coroutine;
+        private Animator _monster_animator;
+        private Collider2D _monster_collider;
+        private run_run.CharcterController _player;
+        public void set_monster_info(Monster monster_info, string key)
         {
-            if(transform.position.x>collision.gameObject.transform.position.x)
-                transform.localScale = new Vector3(-1, 1, 1);
+            _monster_info = monster_info;
+            _monster_key = key;
+        }
+        public IEnumerator monster_check_killed_sequence(Action end_callback=null)
+        {
+            _player.squash_monster();
+            _monster_collider.enabled = false;
+
+            StopCoroutine(move_coroutine);
+            move_coroutine = null;
+            _life_cnt--;
+            if(_life_cnt<=0)
+            {
+                _monster_animator.Play("Dead", -1, 0f);
+                yield return new WaitForSeconds(.5f);
+                MonsterStatManager.Instance.set_monster_dead(_monster_key);
+            }
             else
-                transform.localScale = new Vector3(1, 1, 1);
-            StartCoroutine(monster_attack_sequence());
+            {
+                _monster_animator.Play("Damage", -1, 0f);
+                yield return new WaitForSeconds(.5f);
+                _monster_collider.enabled = true;
+                move_coroutine = move_routine();
+                StartCoroutine(move_coroutine);
+            }
+            _player.set_is_squashing(false);
+            if (end_callback != null)
+            {
+                end_callback();
+                end_callback = null;
+            }
         }
 
-    }
-    IEnumerator monster_attack_sequence()
-    {
-        transform.GetComponent<Animator>().Play("Attack", -1, 0f);
-        StopCoroutine(move_coroutine);
-        move_coroutine = null;
-        yield return new WaitForSeconds(.1f);
-        transform.localScale = new Vector3(move_dir, 1, 1);
-        move_coroutine = move_routine();
-        StartCoroutine(move_coroutine);
-
-    }
-
-    IEnumerator move_coroutine;
-    // Start is called before the first frame update
-    void Start()
-    {
-        move_dir = 1;
-        //set_monster_stat();
-        transform.localScale = Vector3.one;
-        move_coroutine = move_routine();
-        StartCoroutine(move_coroutine);
-        pase_time = _pase_time;
-    }
-
-    IEnumerator move_routine()
-    {
-        transform.GetComponent<Animator>().Play("Move", -1, 0f);
-        while (true)
+        public IEnumerator monster_attack_sequence()
         {
-            transform.localPosition += new Vector3(move_dir*_move_speed, 0, 0);
+            _monster_animator.Play("Attack", -1, 0f);
+            StopCoroutine(move_coroutine);
+            move_coroutine = null;
             yield return new WaitForSeconds(.1f);
-            pase_time -= .1f;
-            if(pase_time <= 0)
+            transform.localScale = new Vector3(move_dir, 1, 1);
+            move_coroutine = move_routine();
+            StartCoroutine(move_coroutine);
+
+        }
+        private void Awake()
+        {
+            _player = FindObjectOfType<run_run.CharcterController>();
+        }
+        void Start()
+        {
+            move_dir = 1;
+            _monster_animator = transform.GetComponent<Animator>();
+            _monster_collider = transform.GetComponent<Collider2D>();
+            transform.localScale = Vector3.one;
+            init_monster();
+            move_coroutine = move_routine();
+            StartCoroutine(move_coroutine);
+        }
+        private void init_monster()
+        {
+            _monster_collider.enabled = true;
+            pase_time = _monster_info._pase_time;
+            transform.localPosition = _monster_info._start_pos;
+            _life_cnt = _monster_info._monster_life;
+            gameObject.SetActive(true);
+        }
+
+        IEnumerator move_routine()
+        {
+            _monster_animator.Play("Move", -1, 0f);
+            while (true)
             {
-                if(move_dir==1)
-                    move_dir = -1;
+                transform.localPosition += new Vector3(move_dir * _monster_info._move_speed, 0, 0);
+                yield return new WaitForSeconds(.1f);
+                pase_time -= .1f;
+                if (pase_time <= 0)
+                {
+                    if (move_dir == 1)
+                        move_dir = -1;
+                    else
+                        move_dir = 1;
+                    transform.localScale = new Vector3(move_dir, 1, 1);
+                    pase_time = _monster_info._pase_time;
+                }
+
+            }
+        }
+
+        bool checking_hit = false;
+        public virtual void OnCollisionEnter2D(Collision2D collision)
+        {
+            if (checking_hit)
+                return;
+            if (collision.collider.CompareTag("Player_foot"))
+            {
+                Debug.Log("player_foot Á¢ÃË");
+                checking_hit = true;
+                StartCoroutine(monster_check_killed_sequence(() => {
+
+                    checking_hit = false;
+                }));
+            }
+            else if (collision.collider.CompareTag("Player"))
+            {
+                Debug.Log("player Á¢ÃË");
+                checking_hit = false;
+                _player.character_nuck_back();
+                if (transform.position.x > collision.gameObject.transform.position.x)
+                    transform.localScale = new Vector3(-1, 1, 1);
                 else
-                    move_dir = 1;
-                transform.localScale = new Vector3(move_dir, 1, 1);
-                pase_time = _pase_time;
+                    transform.localScale = new Vector3(1, 1, 1);
+                StartCoroutine(monster_attack_sequence());
             }
 
         }
     }
+
+
 }
