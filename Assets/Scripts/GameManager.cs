@@ -19,10 +19,16 @@ namespace run_run
         private GameObject[] _diamond_UI_arr;   //3개
         [SerializeField]
         private GameObject[] _life_UI_arr;   //3개
+        [SerializeField]
+        public CameraController _camera_controller;
+        [SerializeField]
+        public Transform _ptcl_container;
+        public List<GameObject> _ptcl_list;
         private void Start()
         {
             init_game();
             set_character_info();
+            _ptcl_list = new List<GameObject>();
         }
 
         private void set_character_info()
@@ -31,22 +37,26 @@ namespace run_run
             _coin_value_txt.text = StatManager.Instance.total_coin_value.ToString();
 
         }
-
+        public void clear_ptcl_list()
+        {
+            foreach (var item in _ptcl_list)
+                item.GetComponent<PooledObj>().Return();
+            _ptcl_list.Clear();
+        }
 
         public void init_game()
         {
             StatManager.Instance.init_character_stat();
+            MonsterStatManager.Instance.restore_monster();
 
             //수집 다이아몬드 갯수 초기화
-            for(int i=0; i< _diamond_UI_arr.Length;i++)
+            for (int i=0; i< _diamond_UI_arr.Length;i++)
             {
                 _diamond_UI_arr[i].GetComponent<Image>().color = StatManager._dim_color;
             }
             //life 초기화
-            for (int i = 0; i < _life_UI_arr.Length; i++)
-            {
-                _life_UI_arr[i].SetActive(true);
-            }
+            Debug.Log("###########init");
+            update_life(StatManager.Instance.character_life_cnt);
         }
         public void update_coin(long coin_value)
         {

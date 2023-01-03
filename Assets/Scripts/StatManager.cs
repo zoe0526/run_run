@@ -7,6 +7,7 @@ namespace run_run
     public class StatManager : MonoBehaviour
     {
         public static int _max_character_life_cnt = 3;
+        public static int _init_life_cnt = 1;
         public static int _max_diamond_cnt = 3;
         public static Vector3 _character_init_pos = Vector3.zero;
         public static Color32 _dim_color = new Color32(255, 255, 255, 80);
@@ -59,7 +60,7 @@ namespace run_run
 
         public void init_character_stat()
         {
-            _character_life_cnt = _max_character_life_cnt;
+            _character_life_cnt = _init_life_cnt;
             _collected_diamond_cnt = 0;
         }
 
